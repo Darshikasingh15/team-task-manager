@@ -264,6 +264,7 @@ select:focus {
 .topbar {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 20px;
   margin-bottom: 22px;
 }
@@ -276,6 +277,42 @@ select:focus {
 .topbar p:last-child {
   margin: 0;
   color: var(--muted);
+}
+
+.project-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 260px;
+}
+
+.status-action {
+  min-height: 40px;
+  border: 0;
+  border-radius: 8px;
+  padding: 0 14px;
+  color: #fff;
+  background: var(--accent);
+  font-weight: 900;
+}
+
+.status-action.reopen {
+  background: var(--violet);
+}
+
+.status-action.delete {
+  background: var(--danger);
+}
+
+.project-complete-banner {
+  margin: -8px 0 18px;
+  border: 1px solid rgba(22, 117, 111, 0.24);
+  border-radius: 8px;
+  padding: 12px 14px;
+  color: var(--accent-strong);
+  background: #dff3ef;
+  font-weight: 800;
 }
 
 .metrics {
@@ -948,6 +985,15 @@ i.done {
   .sidebar {
     position: static;
     height: auto;
+  }
+
+  .topbar {
+    display: grid;
+  }
+
+  .project-actions {
+    justify-content: flex-start;
+    min-width: 0;
   }
 
   .metrics,

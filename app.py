@@ -50,6 +50,8 @@ def init_db():
                 name TEXT NOT NULL,
                 description TEXT DEFAULT '',
                 created_by INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                status TEXT NOT NULL DEFAULT 'Active' CHECK (status IN ('Active', 'Completed')),
+                completed_at TEXT,
                 created_at TEXT NOT NULL
             );
 
@@ -76,6 +78,11 @@ def init_db():
             );
             """
         )
+        columns = {row["name"] for row in conn.execute("PRAGMA table_info(projects)").fetchall()}
+        if "status" not in columns:
+            conn.execute("ALTER TABLE projects ADD COLUMN status TEXT NOT NULL DEFAULT 'Active'")
+        if "completed_at" not in columns:
+            conn.execute("ALTER TABLE projects ADD COLUMN completed_at TEXT")
 
 
 def row_to_dict(row):
@@ -249,6 +256,10 @@ class Handler(BaseHTTPRequestHandler):
                     return self.dashboard(conn, user, parse_qs(parsed.query))
                 if len(parts) == 3 and parts[:2] == ["api", "projects"] and method == "GET":
                     return self.project_detail(conn, user, int(parts[2]))
+                if len(parts) == 3 and parts[:2] == ["api", "projects"] and method == "PATCH":
+                    return self.update_project(conn, user, int(parts[2]), data)
+                if len(parts) == 3 and parts[:2] == ["api", "projects"] and method == "DELETE":
+                    return self.delete_project(conn, user, int(parts[2]))
                 if len(parts) == 4 and parts[:2] == ["api", "projects"] and parts[3] == "tasks":
                     if method == "GET":
                         return self.tasks(conn, user, int(parts[2]))
@@ -303,7 +314,7 @@ class Handler(BaseHTTPRequestHandler):
             LEFT JOIN tasks t ON t.project_id = p.id
             WHERE pm.user_id = ?
             GROUP BY p.id, pm.role
-            ORDER BY p.created_at DESC
+            ORDER BY CASE p.status WHEN 'Active' THEN 1 ELSE 2 END, p.created_at DESC
             """,
             (user["id"],),
         ).fetchall()
@@ -322,6 +333,38 @@ class Handler(BaseHTTPRequestHandler):
             (cur.lastrowid, user["id"], now_iso()),
         )
         self.project_detail(conn, user, cur.lastrowid, HTTPStatus.CREATED)
+
+    def update_project(self, conn, user, project_id, data):
+        role = membership(conn, project_id, user["id"])
+        if not role or role["role"] != "Admin":
+            return self.error("Only project admins can update project status", HTTPStatus.FORBIDDEN)
+        project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+        if not project:
+            return self.error("Project not found", HTTPStatus.NOT_FOUND)
+        status = data.get("status")
+        if status not in {"Active", "Completed"}:
+            return self.error("Project status must be Active or Completed")
+        completed_at = now_iso() if status == "Completed" else None
+        conn.execute(
+            "UPDATE projects SET status = ?, completed_at = ? WHERE id = ?",
+            (status, completed_at, project_id),
+        )
+        if status == "Completed":
+            conn.execute(
+                "UPDATE tasks SET status = 'Done', updated_at = ? WHERE project_id = ?",
+                (now_iso(), project_id),
+            )
+        self.project_detail(conn, user, project_id)
+
+    def delete_project(self, conn, user, project_id):
+        role = membership(conn, project_id, user["id"])
+        if not role or role["role"] != "Admin":
+            return self.error("Only project admins can delete projects", HTTPStatus.FORBIDDEN)
+        project = conn.execute("SELECT id FROM projects WHERE id = ?", (project_id,)).fetchone()
+        if not project:
+            return self.error("Project not found", HTTPStatus.NOT_FOUND)
+        conn.execute("DELETE FROM projects WHERE id = ?", (project_id,))
+        self.send_json({"ok": True})
 
     def project_detail(self, conn, user, project_id, status=HTTPStatus.OK):
         role = membership(conn, project_id, user["id"])

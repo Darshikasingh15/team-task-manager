@@ -175,7 +175,7 @@ function projectCard(project) {
     <button class="project-card ${active}" data-project="${project.id}">
       <span>
         <strong>${escapeHtml(project.name)}</strong>
-        <small>${project.role} - ${done}/${total} done</small>
+        <small>${project.role} - ${project.status || "Active"} - ${done}/${total} done</small>
       </span>
     </button>
   `;
@@ -251,14 +251,26 @@ function emptyWorkspace() {
 
 function workspaceView() {
   const isAdmin = state.currentProject?.role === "Admin";
+  const isCompleted = state.currentProject?.status === "Completed";
   return `
     <header class="topbar">
       <div>
-        <p class="eyebrow">${state.currentProject.role}</p>
+        <p class="eyebrow">${state.currentProject.role} - ${state.currentProject.status || "Active"}</p>
         <h1>${escapeHtml(state.currentProject.name)}</h1>
         <p>${escapeHtml(state.currentProject.description || "No description yet.")}</p>
       </div>
+      ${
+        isAdmin
+          ? `<div class="project-actions">
+              <button class="status-action ${isCompleted ? "reopen" : ""}" data-toggle-project-status>
+                ${isCompleted ? "Reopen project" : "Mark complete"}
+              </button>
+              <button class="status-action delete" data-delete-project>Delete project</button>
+            </div>`
+          : ""
+      }
     </header>
+    ${isCompleted ? `<div class="project-complete-banner">This project is marked complete. Admins can reopen it if more work is needed.</div>` : ""}
     ${dashboardView()}
     <section class="content-grid">
       <div class="panel task-panel">
@@ -271,7 +283,7 @@ function workspaceView() {
             <button class="tab" data-filter="Done">Done</button>
           </div>
         </div>
-        ${isAdmin ? taskForm() : ""}
+        ${isAdmin && !isCompleted ? taskForm() : ""}
         <div id="taskList" class="task-list">${state.tasks.map(taskCard).join("") || `<p class="empty">No tasks visible yet.</p>`}</div>
       </div>
       <aside class="panel members-panel">
@@ -483,6 +495,40 @@ function wireEvents() {
       await loadDashboard();
       renderApp();
     });
+  });
+
+  $("[data-toggle-project-status]")?.addEventListener("click", async () => {
+    const nextStatus = state.currentProject.status === "Completed" ? "Active" : "Completed";
+    try {
+      await request(`/projects/${state.selectedProject}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      await loadProjects();
+      await loadProject(state.selectedProject);
+      await loadDashboard();
+      renderApp();
+      toast(nextStatus === "Completed" ? "Project marked complete" : "Project reopened", "success");
+    } catch (error) {
+      toast(error.message);
+    }
+  });
+
+  $("[data-delete-project]")?.addEventListener("click", async () => {
+    const ok = confirm(`Delete "${state.currentProject.name}" and all of its tasks? This cannot be undone.`);
+    if (!ok) return;
+    try {
+      await request(`/projects/${state.selectedProject}`, { method: "DELETE" });
+      state.selectedProject = null;
+      state.currentProject = null;
+      state.members = [];
+      state.tasks = [];
+      await loadProjects();
+      renderApp();
+      toast("Project deleted", "success");
+    } catch (error) {
+      toast(error.message);
+    }
   });
 
   $("#taskForm")?.addEventListener("submit", async (event) => {
