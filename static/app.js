@@ -145,7 +145,7 @@ function renderApp() {
           <button title="Create project" class="icon-button" type="submit">+</button>
         </form>
         <nav class="project-list">
-          ${state.projects.map(projectCard).join("") || `<p class="empty">Create your first project to start assigning tasks.</p>`}
+          ${state.projects.map(projectCard).join("") || sidebarEmptyState()}
         </nav>
         <button id="logout" class="ghost">Log out</button>
       </aside>
@@ -156,6 +156,15 @@ function renderApp() {
     </div>
   `;
   wireEvents();
+}
+
+function sidebarEmptyState() {
+  return `
+    <div class="sidebar-empty">
+      <strong>No projects yet</strong>
+      <span>Try: Website launch, Final year project, or Sprint board.</span>
+    </div>
+  `;
 }
 
 function projectCard(project) {
@@ -174,35 +183,68 @@ function projectCard(project) {
 
 function emptyWorkspace() {
   return `
-    <section class="starter">
-      <div class="starter-hero">
-        <p class="eyebrow">Start workspace</p>
-        <h1>Plan the work before the work gets noisy.</h1>
-        <p>Create a project from the left panel. You become the Admin, then you can add members, assign tasks, and track progress from this dashboard.</p>
+    <section class="starter starter-showcase">
+      <div class="starter-copy">
+        <p class="eyebrow">Workspace setup</p>
+        <h1>Create your first project</h1>
+        <p>Build a shared task board for your team, assign owners, and track progress from one clean dashboard.</p>
+        <div class="starter-actions">
+          <span>Use the form on the left to begin.</span>
+          <span class="starter-badge">Admin access starts automatically</span>
+        </div>
       </div>
+      <section class="starter-board" aria-label="Preview of the project dashboard">
+        <div class="starter-metrics">
+          <div><span>Total tasks</span><strong>24</strong></div>
+          <div><span>In progress</span><strong>8</strong></div>
+          <div><span>Done</span><strong>11</strong></div>
+          <div><span>Overdue</span><strong>2</strong></div>
+        </div>
+        <div class="starter-columns">
+          <article>
+            <h2>To Do</h2>
+            <div class="mini-task high"><strong>Design auth flow</strong><span>High - Priya</span></div>
+            <div class="mini-task"><strong>Collect requirements</strong><span>Medium - Aman</span></div>
+          </article>
+          <article>
+            <h2>In Progress</h2>
+            <div class="mini-task urgent"><strong>Build task APIs</strong><span>Urgent - Darshika</span></div>
+            <div class="mini-task"><strong>Dashboard charts</strong><span>Medium - Neha</span></div>
+          </article>
+          <article>
+            <h2>Done</h2>
+            <div class="mini-task done-mini"><strong>Project schema</strong><span>Complete</span></div>
+            <div class="mini-task done-mini"><strong>Login screen</strong><span>Complete</span></div>
+          </article>
+        </div>
+        <div class="starter-insights">
+          <div>
+            <span>Next focus</span>
+            <strong>Invite members and assign first task</strong>
+          </div>
+          <div class="starter-progress">
+            <span>Example completion</span>
+            <div><i style="width:46%"></i></div>
+          </div>
+        </div>
+      </section>
       <div class="starter-grid">
         <article>
           <strong>1</strong>
-          <span>Create a project</span>
-          <p>Add a name and short description in the sidebar form.</p>
+          <span>Name the workspace</span>
+          <p>Create a project for a class assignment, product sprint, or client work.</p>
         </article>
         <article>
           <strong>2</strong>
-          <span>Invite teammates</span>
-          <p>Add registered users by email and choose Admin or Member access.</p>
+          <span>Add your team</span>
+          <p>Invite registered users and choose Admin or Member access.</p>
         </article>
         <article>
           <strong>3</strong>
-          <span>Assign tasks</span>
-          <p>Use due dates, priorities, assignees, and status updates to keep work visible.</p>
+          <span>Track progress</span>
+          <p>Use priorities, due dates, status updates, and workload analytics.</p>
         </article>
       </div>
-      <section class="starter-preview">
-        <div><span>Total tasks</span><strong>0</strong></div>
-        <div><span>Completion</span><strong>0%</strong></div>
-        <div><span>Overdue</span><strong>0</strong></div>
-        <div><span>Workload</span><strong>Ready</strong></div>
-      </section>
     </section>
   `;
 }
